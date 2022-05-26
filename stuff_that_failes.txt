@@ -1,0 +1,72 @@
+std::vector<sf::Int16> makeSamples(StringSound& gs);
+std::vector< std::vector<sf::Int16> >VectorOfSamples(double(*func)(int));
+std::vector<sf::SoundBuffer>VectorOfSoundBuffers(std::vector<std::vector<sf::Int16>> VectorOfSamples);//NOLINT
+std::vector<sf::Sound>VectorOfSound(std::vector<sf::SoundBuffer> VectorOfSoundBuffers);//NOLINT
+int main(void) {
+    sf::RenderWindow window(sf::VideoMode(300, 200), "SFML Plucked String Sound Lite");//NOLINT
+    sf::Event event;
+    std::vector< std::vector<sf::Int16> >samples;
+    std::vector<sf::SoundBuffer>soundBuffers;
+    std::vector<sf::Sound>sounds;
+
+    samples = VectorOfSamples([](int i) { std::cout << (440.0 * pow(2 , (i - 24.0)/12) ) << "\n"; return (440.0 * pow(2 , (i - 24.0)/12) ); });//NOLINT
+    soundBuffers = VectorOfSoundBuffers(samples);
+    sounds = VectorOfSound(soundBuffers);
+
+    while (window.isOpen()) {
+        while (window.pollEvent(event)) {
+            switch (event.type) {
+                case sf::Event::Closed:
+                window.close();
+                break;
+
+                case sf::Event::KeyPressed:
+                    switch (event.key.code) {
+                        case sf::Keyboard::Q:
+                            sounds[0].play();
+                            std::cout << "q is pressed" << samples[0].size()<<"\n";//NOLINT
+                            break;
+                        default:
+                            break;
+                    }
+                default:
+                    break;
+            }
+        }
+    }
+    return 0;
+}
+std::vector<sf::Int16> makeSamples(StringSound& gs) {
+    std::vector<sf::Int16> samples;
+    gs.pluck();
+    int duration = 8;  // seconds
+    int i;
+    for (i = 0; i < SAMPLES_PER_SEC * duration; i++) {
+        gs.tic();
+        samples.push_back(gs.sample());
+    }
+    return samples;
+}
+std::vector< std::vector<sf::Int16> >VectorOfSamples(double(*func)(int)) {
+    std::vector< std::vector<sf::Int16> >VectorOfSamples;
+    for (int i = 0 ; i < 37 ; i++) {
+        StringSound gs(func(i));
+        VectorOfSamples.push_back(makeSamples(gs));
+    }
+    return VectorOfSamples;
+}
+std::vector<sf::SoundBuffer>VectorOfSoundBuffers(std::vector< std::vector<sf::Int16> > VectorOfSamples) { //NOLINT
+    std::vector<sf::SoundBuffer> VectorOfSoundBuffers(37 , sf::SoundBuffer());//NOLINT
+    for (int i = 0 ; i < VectorOfSamples.size() ; i++) {
+        if (!VectorOfSoundBuffers[i].loadFromSamples(&VectorOfSamples[i][0], VectorOfSamples[i].size(), 2, SAMPLES_PER_SEC))//NOLINT
+        throw std::runtime_error("sf::SoundBuffer: failed to load from samples.");//NOLINT
+    }
+    return VectorOfSoundBuffers;
+}
+std::vector<sf::Sound>VectorOfSound(std::vector<sf::SoundBuffer> VectorOfSoundBuffers) {  //NOLINT
+    std::vector<sf::Sound>VectorOfSound(37 , sf::Sound());
+    for (int i = 0; i < VectorOfSoundBuffers.size(); i++) {
+        VectorOfSound[i].setBuffer(VectorOfSoundBuffers[i]);
+    }
+    return VectorOfSound;
+}
